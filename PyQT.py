@@ -43,17 +43,15 @@ Answer: train
 Context: 4 a = agent. getaction ( s ) ; 5 s ′ [UNK] ( s, a, · ) ; 6 [UNK] ( s, a, s ′ ) ; 7 agent. train ( s, a, r, s ′ ) ; 8 ifs ′ = = s∞then 9 break ; / / exit out of loop over time, t 10 s = s ′ ; 11 agent. newepisode ( ) ; here the agent has three functions. the first, getaction, which samples an action, a, given the current state s, and using the agent ’ s current policy. the second function
 '''
 
-
-
-class App(QWidget):
+class EmbeddingApp(QWidget):
 
     def __init__(self):
         super().__init__()
         self.title = 'PyQt5 file dialogs'
         self.left = 10
         self.top = 10
-        self.width = int(640*1.5)
-        self.height = int(480*1.5)
+        self.width = 640
+        self.height = 240
         self.currentPath = ""
         self.initUI()
     
@@ -63,12 +61,8 @@ class App(QWidget):
 
         layout = QGridLayout()
 
-        self.textWindow = QTextBrowser(self, readOnly=True)
-
+        self.textWindow = QLabel()
         layout.addWidget(self.textWindow, 0, 0, 1, 2)
-
-        # self.textWindow = QLabel()
-        # layout.addWidget(self.textWindow, 0, 0, 1, 2)
 		
         self.filepathBox = QLineEdit(self, readOnly=True, placeholderText="...")
         layout.addWidget(self.filepathBox, 1, 0)
@@ -95,11 +89,67 @@ class App(QWidget):
         if directory:
             self.filepathBox.setText(directory)
     def execute(self):
-        # self.textWindow.setPlainText("Embeddings being create and saved to " + self.saveFileName.text() + ".json")
+        self.textWindow.setText("Embeddings being created and saved to " + self.saveFileName.text() + ".json")
+
+class SearchApp(QWidget):
+
+    def __init__(self):
+        super().__init__()
+        self.title = 'PyQt5 file dialogs'
+        self.left = 10
+        self.top = 10
+        self.width = int(640*1.5)
+        self.height = int(480*1.5)
+        self.currentPath = ""
+        self.initUI()
+    
+    def initUI(self):
+        self.setWindowTitle(self.title)
+        self.setGeometry(self.left, self.top, self.width, self.height)
+
+        layout = QGridLayout()
+
+        self.textWindow = QTextBrowser(self, readOnly=True)
+
+        layout.addWidget(self.textWindow, 0, 0, 1, 2)
+		
+        self.filepathBox = QLineEdit(self, readOnly=True, placeholderText="...")
+        layout.addWidget(self.filepathBox, 1, 0)
+
+
+        self.btn1 = QPushButton("Select a File")
+        self.btn1.clicked.connect(self.folderDialog)
+        layout.addWidget(self.btn1, 1, 1)
+
+        self.saveFileName = QLineEdit(self, placeholderText="Search text...")
+        layout.addWidget(self.saveFileName, 2, 0)
+
+        self.btn2 = QPushButton("Search")
+        self.btn2.clicked.connect(self.execute)
+        layout.addWidget(self.btn2, 2,1)
+        
+        self.setLayout(layout)
+        
+        self.show()
+    def folderDialog(self):
+        options = QFileDialog.Options()
+        options |= QFileDialog.Option.ShowDirsOnly
+        directory = QFileDialog.getExistingDirectory(self,"QFileDialog.getExistingDirectory()", self.currentPath, options=options)
+        if directory:
+            self.filepathBox.setText(directory)
+            self.textWindow.setPlainText("File loaded \nReady to search")
+    def execute(self):
         self.textWindow.setPlainText(test_text)
-        # self.textWindow.setText("Embeddings being create and saved to " + self.saveFileName.text() + ".json")
 
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    ex = App()
+    app = QApplication([])
+    app.setStyle("Fusion")
+
+    try:
+        if sys.argv[1] == "search":
+            ex = SearchApp()
+        else:
+            ex = EmbeddingApp()
+    except:
+        ex = EmbeddingApp()
     sys.exit(app.exec())
