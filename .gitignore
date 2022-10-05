@@ -1,2 +1,5 @@
 /data_directory
 /env
+/toxic_comments/comments/
+/toxic_comments/comments/train_preprocessed.csv
+/lib/__pycache__
