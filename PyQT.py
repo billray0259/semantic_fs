@@ -1,5 +1,8 @@
 import sys
+import time
+
 from PyQt5.QtWidgets import *
+from PyQt5.QtCore import QThread, pyqtSignal
 
 test_text = '''
 data_directory2/Lecture_Notes_v1.0_687_F22.pdf - 11.693231582641602
@@ -43,6 +46,26 @@ Answer: train
 Context: 4 a = agent. getaction ( s ) ; 5 s ′ [UNK] ( s, a, · ) ; 6 [UNK] ( s, a, s ′ ) ; 7 agent. train ( s, a, r, s ′ ) ; 8 ifs ′ = = s∞then 9 break ; / / exit out of loop over time, t 10 s = s ′ ; 11 agent. newepisode ( ) ; here the agent has three functions. the first, getaction, which samples an action, a, given the current state s, and using the agent ’ s current policy. the second function
 '''
 
+# inspiration https://www.saltycrane.com/blog/2007/06/more-pyqt-example-code/
+
+BAR_LENGTH = 100
+
+class CreateEmbeddings(QThread):
+    progressSig = pyqtSignal(int)
+    completeSig = pyqtSignal(int)
+
+    def run(self):
+        length = 999
+        progressCount = 0
+        for i in range(0, length):
+            #do spicy math here
+            time.sleep(.01)
+            if (i/length)*100 > progressCount:
+                progressCount+=1
+                self.progressSig.emit(progressCount)
+        self.completeSig.emit(1)
+        
+
 class EmbeddingApp(QWidget):
 
     def __init__(self):
@@ -78,10 +101,15 @@ class EmbeddingApp(QWidget):
         self.btn2 = QPushButton("Create Embedding")
         self.btn2.clicked.connect(self.execute)
         layout.addWidget(self.btn2, 2,1)
+
+        self.progressBar = QProgressBar(self)
+        self.progressBar.setMaximum(BAR_LENGTH)
+        self.progressBar.hide()
+        layout.addWidget(self.progressBar, 3, 0, 1, 2)
         
         self.setLayout(layout)
-        
         self.show()
+    
     def folderDialog(self):
         options = QFileDialog.Options()
         options |= QFileDialog.Option.ShowDirsOnly
@@ -90,6 +118,18 @@ class EmbeddingApp(QWidget):
             self.filepathBox.setText(directory)
     def execute(self):
         self.textWindow.setText("Embeddings being created and saved to " + self.saveFileName.text() + ".json")
+
+        self.progressBar.show()
+
+        self.calcThread = CreateEmbeddings()
+        self.calcThread.progressSig.connect(self.progressCountCallback)
+        self.calcThread.completeSig.connect(self.completeCallback)
+        self.calcThread.start()
+    
+    def progressCountCallback(self, value):
+        self.progressBar.setValue(value)
+    def completeCallback(self, value):
+        self.textWindow.setText("Completed! \nEmbeddings saved to " + self.saveFileName.text() + ".json")
 
 class SearchApp(QWidget):
 
@@ -141,7 +181,8 @@ class SearchApp(QWidget):
     def execute(self):
         self.textWindow.setPlainText(test_text)
 
-if __name__ == '__main__':
+def main():
+    #run gui in a thread
     app = QApplication([])
     app.setStyle("Fusion")
 
@@ -152,4 +193,10 @@ if __name__ == '__main__':
             ex = EmbeddingApp()
     except:
         ex = EmbeddingApp()
-    sys.exit(app.exec())
+    app.exec()
+    print("yay!")
+
+
+
+if __name__ == '__main__':
+    main()
