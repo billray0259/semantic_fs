@@ -20,6 +20,17 @@ Return value:
             },
         ]
     }
+GET /data_upload/{batchId}/
+    {
+    }
+Return value:
+    {
+        "status": "ok",
+    }
+Return value:
+    {
+        "status": "Not found",
+    }
 
 GET /search/
     {
