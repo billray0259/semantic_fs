@@ -64,23 +64,51 @@ class CreateEmbeddings(QThread):
                 progressCount+=1
                 self.progressSig.emit(progressCount)
         self.completeSig.emit(1)
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super(MainWindow, self).__init__()
+        self.title = 'Semantic File Search'
+        self.left = 10
+        self.top = 10
+        self.width = 640
+        self.height = 640
+        self.initUI()
+
+    def initUI(self):
+        self.setWindowTitle(self.title)
+        self.setGeometry(self.left, self.top, self.width, self.height)
+
+        self.tabsWindow = TabsWindow()
+
+        self.setCentralWidget(self.tabsWindow)
+        self.show()
+
+class TabsWindow(QWidget):
+    def __init__(self):
+        super(QWidget, self).__init__()
+        self.layout = QVBoxLayout(self)
         
+        # Initialize tab screen
+        self.tabs = QTabWidget()
+        self.generate = EmbeddingApp()
+        self.search = SearchApp()
+        
+        # Add tabs
+        self.tabs.addTab(self.generate,"Generate Embeddings")
+        self.tabs.addTab(self.search,"Search Embeddings")
+        
+        # Add tabs to widget
+        self.layout.addWidget(self.tabs)
+        self.setLayout(self.layout)
 
 class EmbeddingApp(QWidget):
 
     def __init__(self):
         super().__init__()
-        self.title = 'PyQt5 file dialogs'
-        self.left = 10
-        self.top = 10
-        self.width = 640
-        self.height = 240
-        self.currentPath = ""
         self.initUI()
     
     def initUI(self):
-        self.setWindowTitle(self.title)
-        self.setGeometry(self.left, self.top, self.width, self.height)
 
         layout = QGridLayout()
 
@@ -96,12 +124,12 @@ class EmbeddingApp(QWidget):
         layout.addWidget(self.fileSelectBtn, 1, 1)
 
         self.saveFileName = QLineEdit(self, placeholderText="Embedding file name")
+        self.saveFileName.textChanged.connect(self.buttonCheck)
         layout.addWidget(self.saveFileName, 2, 0)
 
         self.runBtn = QPushButton("Create Embedding")
         self.runBtn.clicked.connect(self.run)
-        # listen for signals of edited filename and button are clicked
-        # self.connect(self.cbUsers, PYQT_SIGNAL("selectionChanged(int)"), self.setEmbeddingReady)
+        self.runBtn.setEnabled(False)
         layout.addWidget(self.runBtn, 2,1)
 
         self.progressBar = QProgressBar(self)
@@ -110,15 +138,15 @@ class EmbeddingApp(QWidget):
         layout.addWidget(self.progressBar, 3, 0, 1, 2)
         
         self.setLayout(layout)
-        self.show()
     
     def folderDialog(self):
         options = QFileDialog.Options()
         options |= QFileDialog.Option.ShowDirsOnly
-        directory = QFileDialog.getExistingDirectory(self,"QFileDialog.getExistingDirectory()", self.currentPath, options=options)
-        self.setEmbeddingReady()
+        directory = QFileDialog.getExistingDirectory(self,"QFileDialog.getExistingDirectory()", "", options=options)
         if directory:
             self.filepathBox.setText(directory)
+        self.buttonCheck()
+    
     def run(self):
         self.textWindow.setText("Embeddings being created and saved to " + self.saveFileName.text() + ".json")
 
@@ -129,15 +157,15 @@ class EmbeddingApp(QWidget):
         self.calcThread.completeSig.connect(self.completeCallback)
         self.calcThread.start()
 
-    def setEmbeddingReady(self):
-        if self.currentPath != "" and self.saveFileName.text() != "":
-            self.runBtn.setEnabled(False)
-        else:
+    def buttonCheck(self):
+        if self.filepathBox.text() != "" and self.saveFileName.text() != "":
             self.runBtn.setEnabled(True)
-        
-    
+        else:
+            self.runBtn.setEnabled(False)
+
     def progressCountCallback(self, value):
         self.progressBar.setValue(value)
+
     def completeCallback(self, value):
         self.textWindow.setText("Completed! \nEmbeddings saved to " + self.saveFileName.text() + ".json")
 
@@ -145,66 +173,48 @@ class SearchApp(QWidget):
 
     def __init__(self):
         super().__init__()
-        self.title = 'PyQt5 file dialogs'
-        self.left = 10
-        self.top = 10
-        self.width = int(640*1.5)
-        self.height = int(480*1.5)
-        self.currentPath = ""
         self.initUI()
     
     def initUI(self):
-        self.setWindowTitle(self.title)
-        self.setGeometry(self.left, self.top, self.width, self.height)
-
         layout = QGridLayout()
+        layout.setColumnStretch(0, 1)
 
         self.textWindow = QTextBrowser(self, readOnly=True)
 
         layout.addWidget(self.textWindow, 0, 0, 1, 2)
+
+        self.searchField = QLineEdit(self, placeholderText="Search text...")
+        self.searchField.textChanged.connect(self.buttonCheck)
+        layout.addWidget(self.searchField, 1, 0)
 		
-        self.filepathBox = QLineEdit(self, readOnly=True, placeholderText="...")
-        layout.addWidget(self.filepathBox, 1, 0)
-
-
-        self.fileSelectBtn = QPushButton("Select a File")
-        self.fileSelectBtn.clicked.connect(self.folderDialog)
-        layout.addWidget(self.fileSelectBtn, 1, 1)
-
-        self.saveFileName = QLineEdit(self, placeholderText="Search text...")
-        layout.addWidget(self.saveFileName, 2, 0)
+        self.filepathField = QLineEdit(self, placeholderText="File Path (Optional)")
+        layout.addWidget(self.filepathField, 2, 0)
+        
+        self.idField = QLineEdit(self, placeholderText="BatchId")
+        self.idField.textChanged.connect(self.buttonCheck)
+        layout.addWidget(self.idField, 1, 1)
 
         self.runBtn = QPushButton("Search")
         self.runBtn.clicked.connect(self.run)
+        self.runBtn.setEnabled(False)
         layout.addWidget(self.runBtn, 2,1)
         
         self.setLayout(layout)
-        
-        self.show()
-    def folderDialog(self):
-        options = QFileDialog.Options()
-        options |= QFileDialog.Option.ShowDirsOnly
-        directory = QFileDialog.getExistingDirectory(self,"QFileDialog.getExistingDirectory()", self.currentPath, options=options)
-        if directory:
-            self.filepathBox.setText(directory)
-            self.textWindow.setPlainText("File loaded \nReady to search")
+    
+    def buttonCheck(self):
+        if  self.searchField.text() != "" and self.idField.text() != "":
+            self.runBtn.setEnabled(True)
+        else:
+            self.runBtn.setEnabled(False)
+
     def run(self):
         self.textWindow.setPlainText(test_text)
 
 def main():
-    #run gui in a thread
-    app = QApplication([])
+    app = QApplication(sys.argv)
     app.setStyle("Fusion")
-
-    try:
-        if sys.argv[1] == "search":
-            ex = SearchApp()
-        else:
-            ex = EmbeddingApp()
-    except:
-        ex = EmbeddingApp()
-    app.exec()
-    print("yay!")
+    mw = MainWindow()
+    sys.exit(app.exec())
 
 
 
