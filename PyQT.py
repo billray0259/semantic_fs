@@ -91,16 +91,18 @@ class EmbeddingApp(QWidget):
         layout.addWidget(self.filepathBox, 1, 0)
 
 
-        self.btn1 = QPushButton("Select a File")
-        self.btn1.clicked.connect(self.folderDialog)
-        layout.addWidget(self.btn1, 1, 1)
+        self.fileSelectBtn = QPushButton("Select a File")
+        self.fileSelectBtn.clicked.connect(self.folderDialog)
+        layout.addWidget(self.fileSelectBtn, 1, 1)
 
         self.saveFileName = QLineEdit(self, placeholderText="Embedding file name")
         layout.addWidget(self.saveFileName, 2, 0)
 
-        self.btn2 = QPushButton("Create Embedding")
-        self.btn2.clicked.connect(self.execute)
-        layout.addWidget(self.btn2, 2,1)
+        self.runBtn = QPushButton("Create Embedding")
+        self.runBtn.clicked.connect(self.run)
+        # listen for signals of edited filename and button are clicked
+        # self.connect(self.cbUsers, PYQT_SIGNAL("selectionChanged(int)"), self.setEmbeddingReady)
+        layout.addWidget(self.runBtn, 2,1)
 
         self.progressBar = QProgressBar(self)
         self.progressBar.setMaximum(BAR_LENGTH)
@@ -114,9 +116,10 @@ class EmbeddingApp(QWidget):
         options = QFileDialog.Options()
         options |= QFileDialog.Option.ShowDirsOnly
         directory = QFileDialog.getExistingDirectory(self,"QFileDialog.getExistingDirectory()", self.currentPath, options=options)
+        self.setEmbeddingReady()
         if directory:
             self.filepathBox.setText(directory)
-    def execute(self):
+    def run(self):
         self.textWindow.setText("Embeddings being created and saved to " + self.saveFileName.text() + ".json")
 
         self.progressBar.show()
@@ -125,6 +128,13 @@ class EmbeddingApp(QWidget):
         self.calcThread.progressSig.connect(self.progressCountCallback)
         self.calcThread.completeSig.connect(self.completeCallback)
         self.calcThread.start()
+
+    def setEmbeddingReady(self):
+        if self.currentPath != "" and self.saveFileName.text() != "":
+            self.runBtn.setEnabled(False)
+        else:
+            self.runBtn.setEnabled(True)
+        
     
     def progressCountCallback(self, value):
         self.progressBar.setValue(value)
@@ -157,16 +167,16 @@ class SearchApp(QWidget):
         layout.addWidget(self.filepathBox, 1, 0)
 
 
-        self.btn1 = QPushButton("Select a File")
-        self.btn1.clicked.connect(self.folderDialog)
-        layout.addWidget(self.btn1, 1, 1)
+        self.fileSelectBtn = QPushButton("Select a File")
+        self.fileSelectBtn.clicked.connect(self.folderDialog)
+        layout.addWidget(self.fileSelectBtn, 1, 1)
 
         self.saveFileName = QLineEdit(self, placeholderText="Search text...")
         layout.addWidget(self.saveFileName, 2, 0)
 
-        self.btn2 = QPushButton("Search")
-        self.btn2.clicked.connect(self.execute)
-        layout.addWidget(self.btn2, 2,1)
+        self.runBtn = QPushButton("Search")
+        self.runBtn.clicked.connect(self.run)
+        layout.addWidget(self.runBtn, 2,1)
         
         self.setLayout(layout)
         
@@ -178,7 +188,7 @@ class SearchApp(QWidget):
         if directory:
             self.filepathBox.setText(directory)
             self.textWindow.setPlainText("File loaded \nReady to search")
-    def execute(self):
+    def run(self):
         self.textWindow.setPlainText(test_text)
 
 def main():
