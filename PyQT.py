@@ -91,8 +91,8 @@ class TabsWindow(QWidget):
         
         # Initialize tab screen
         self.tabs = QTabWidget()
-        self.generate = EmbeddingApp()
-        self.search = SearchApp()
+        self.generate = EmbeddingWidget()
+        self.search = SearchWidget()
         
         # Add tabs
         self.tabs.addTab(self.generate,"Generate Embeddings")
@@ -102,7 +102,7 @@ class TabsWindow(QWidget):
         self.layout.addWidget(self.tabs)
         self.setLayout(self.layout)
 
-class EmbeddingApp(QWidget):
+class EmbeddingWidget(QWidget):
 
     def __init__(self):
         super().__init__()
@@ -169,7 +169,7 @@ class EmbeddingApp(QWidget):
     def completeCallback(self, value):
         self.textWindow.setText("Completed! \nEmbeddings saved to " + self.saveFileName.text() + ".json")
 
-class SearchApp(QWidget):
+class SearchWidget(QWidget):
 
     def __init__(self):
         super().__init__()
