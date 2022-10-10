@@ -3,3 +3,4 @@
 /toxic_comments/comments/
 /toxic_comments/comments/train_preprocessed.csv
 /lib/__pycache__
+/milvus
