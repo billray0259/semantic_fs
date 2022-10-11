@@ -1,10 +1,14 @@
 import sys
 import time
+import os
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import QThread, pyqtSignal
+from sklearn.utils import resample
 
-test_text = '''
+from lib.file_readers import iter_texts, iter_supported_files
+
+test_text = """
 data_directory2/Lecture_Notes_v1.0_687_F22.pdf - 11.693231582641602
 Answer: rewards
 Context: assign rewards in a way that causes undesirable behavior for this example. one mistake is to give positive rewards for walking on the sidewalk — in that case the agent will learn to walk back and forth on the sidewalk gathering more and more rewards, rather than going to the door where the episode ends. in this case, optimal behavior is produced by putting negative rewards on the flowerbed, and a positive reward at the door. this provides a general rule of thumb when designing rewards : give rewards for what you want the agent to achieve, not for how you think the agent should achieve it. rewards that are given to help the agent quickly
@@ -44,31 +48,43 @@ Context: ] ( 58 ) = e [ rt | st = s, π ] + γe [ rt + 1 | st = s, π ] + γ2e [
 data_directory2/Lecture_Notes_v1.0_687_F22.pdf - 10.4984712600708
 Answer: train
 Context: 4 a = agent. getaction ( s ) ; 5 s ′ [UNK] ( s, a, · ) ; 6 [UNK] ( s, a, s ′ ) ; 7 agent. train ( s, a, r, s ′ ) ; 8 ifs ′ = = s∞then 9 break ; / / exit out of loop over time, t 10 s = s ′ ; 11 agent. newepisode ( ) ; here the agent has three functions. the first, getaction, which samples an action, a, given the current state s, and using the agent ’ s current policy. the second function
-'''
+"""
 
 # inspiration https://www.saltycrane.com/blog/2007/06/more-pyqt-example-code/
 
 BAR_LENGTH = 100
 
+
 class CreateEmbeddings(QThread):
     progressSig = pyqtSignal(int)
-    completeSig = pyqtSignal(int)
+    completeSig = pyqtSignal(object)
+
+    def __init__(self, dir=""):
+        super(QThread, self).__init__()
+        self.dir = dir
 
     def run(self):
-        length = 999
+        """
+        This is very janky because we cant see the length of the texts generator
+        Need to fix this
+        """
+        self.progressSig.emit(0)
+        length = len(list(iter_supported_files(self.dir)))
         progressCount = 0
-        for i in range(0, length):
-            #do spicy math here
-            time.sleep(.01)
-            if (i/length)*100 > progressCount:
-                progressCount+=1
-                self.progressSig.emit(progressCount)
-        self.completeSig.emit(1)
+        result = []
+        for value in iter_texts(self.dir):
+            result.append(value)
+            progressCount += 1
+            self.progressSig.emit(int((progressCount / length) * 100))
+
+        self.progressSig.emit(BAR_LENGTH)
+        self.completeSig.emit(result)
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
-        self.title = 'Semantic File Search'
+        self.title = "Semantic File Search"
         self.left = 10
         self.top = 10
         self.width = 640
@@ -84,40 +100,40 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.tabsWindow)
         self.show()
 
+
 class TabsWindow(QWidget):
     def __init__(self):
         super(QWidget, self).__init__()
         self.layout = QVBoxLayout(self)
-        
+
         # Initialize tab screen
         self.tabs = QTabWidget()
         self.generate = EmbeddingWidget()
         self.search = SearchWidget()
-        
+
         # Add tabs
-        self.tabs.addTab(self.generate,"Generate Embeddings")
-        self.tabs.addTab(self.search,"Search Embeddings")
-        
+        self.tabs.addTab(self.generate, "Generate Embeddings")
+        self.tabs.addTab(self.search, "Search Embeddings")
+
         # Add tabs to widget
         self.layout.addWidget(self.tabs)
         self.setLayout(self.layout)
 
-class EmbeddingWidget(QWidget):
 
+class EmbeddingWidget(QWidget):
     def __init__(self):
         super().__init__()
         self.initUI()
-    
+
     def initUI(self):
 
         layout = QGridLayout()
 
         self.textWindow = QLabel()
         layout.addWidget(self.textWindow, 0, 0, 1, 2)
-		
+
         self.filepathBox = QLineEdit(self, readOnly=True, placeholderText="...")
         layout.addWidget(self.filepathBox, 1, 0)
-
 
         self.fileSelectBtn = QPushButton("Select a File")
         self.fileSelectBtn.clicked.connect(self.folderDialog)
@@ -127,32 +143,37 @@ class EmbeddingWidget(QWidget):
         self.saveFileName.textChanged.connect(self.buttonCheck)
         layout.addWidget(self.saveFileName, 2, 0)
 
-        self.runBtn = QPushButton("Create Embedding")
+        self.runBtn = QPushButton("Colllect Text")
         self.runBtn.clicked.connect(self.run)
         self.runBtn.setEnabled(False)
-        layout.addWidget(self.runBtn, 2,1)
+        layout.addWidget(self.runBtn, 2, 1)
 
         self.progressBar = QProgressBar(self)
         self.progressBar.setMaximum(BAR_LENGTH)
         self.progressBar.hide()
         layout.addWidget(self.progressBar, 3, 0, 1, 2)
-        
+
         self.setLayout(layout)
-    
+
     def folderDialog(self):
         options = QFileDialog.Options()
         options |= QFileDialog.Option.ShowDirsOnly
-        directory = QFileDialog.getExistingDirectory(self,"QFileDialog.getExistingDirectory()", "", options=options)
+        directory = QFileDialog.getExistingDirectory(
+            self, "QFileDialog.getExistingDirectory()", "", options=options
+        )
         if directory:
             self.filepathBox.setText(directory)
         self.buttonCheck()
-    
+
     def run(self):
-        self.textWindow.setText("Embeddings being created and saved to " + self.saveFileName.text() + ".json")
+        self.textWindow.setText(
+            "Grabbing text from {}...".format(self.filepathBox.text())
+        )
 
         self.progressBar.show()
-
-        self.calcThread = CreateEmbeddings()
+        self.calcThread = CreateEmbeddings(
+            dir=os.path.normpath(self.filepathBox.text())
+        )
         self.calcThread.progressSig.connect(self.progressCountCallback)
         self.calcThread.completeSig.connect(self.completeCallback)
         self.calcThread.start()
@@ -167,14 +188,15 @@ class EmbeddingWidget(QWidget):
         self.progressBar.setValue(value)
 
     def completeCallback(self, value):
-        self.textWindow.setText("Completed! \nEmbeddings saved to " + self.saveFileName.text() + ".json")
+        self.textWindow.setText("Completed!")
+        print(len(value))
+
 
 class SearchWidget(QWidget):
-
     def __init__(self):
         super().__init__()
         self.initUI()
-    
+
     def initUI(self):
         layout = QGridLayout()
         layout.setColumnStretch(0, 1)
@@ -186,10 +208,10 @@ class SearchWidget(QWidget):
         self.searchField = QLineEdit(self, placeholderText="Search text...")
         self.searchField.textChanged.connect(self.buttonCheck)
         layout.addWidget(self.searchField, 1, 0)
-		
+
         self.filepathField = QLineEdit(self, placeholderText="File Path (Optional)")
         layout.addWidget(self.filepathField, 2, 0)
-        
+
         self.idField = QLineEdit(self, placeholderText="BatchId")
         self.idField.textChanged.connect(self.buttonCheck)
         layout.addWidget(self.idField, 1, 1)
@@ -197,18 +219,19 @@ class SearchWidget(QWidget):
         self.runBtn = QPushButton("Search")
         self.runBtn.clicked.connect(self.run)
         self.runBtn.setEnabled(False)
-        layout.addWidget(self.runBtn, 2,1)
-        
+        layout.addWidget(self.runBtn, 2, 1)
+
         self.setLayout(layout)
-    
+
     def buttonCheck(self):
-        if  self.searchField.text() != "" and self.idField.text() != "":
+        if self.searchField.text() != "" and self.idField.text() != "":
             self.runBtn.setEnabled(True)
         else:
             self.runBtn.setEnabled(False)
 
     def run(self):
         self.textWindow.setPlainText(test_text)
+
 
 def main():
     app = QApplication(sys.argv)
@@ -217,6 +240,5 @@ def main():
     sys.exit(app.exec())
 
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
