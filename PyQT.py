@@ -1,6 +1,8 @@
 import sys
 import time
 import os
+import requests
+import json
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import QThread, pyqtSignal
@@ -73,12 +75,39 @@ class CreateEmbeddings(QThread):
         progressCount = 0
         result = []
         for value in iter_texts(self.dir):
-            result.append(value)
+            result.append({"file": value[0], "text": value[1]})
             progressCount += 1
             self.progressSig.emit(int((progressCount / length) * 100))
 
         self.progressSig.emit(BAR_LENGTH)
         self.completeSig.emit(result)
+
+
+class HTTPS_Get(QThread):
+    completeSig = pyqtSignal(object)
+
+    def __init__(self, url, data):
+        super(QThread, self).__init__()
+        self.url = url
+        self.data = data
+
+    def run(self):
+        response = requests.get(self.url, json=self.data)
+        self.completeSig.emit(response)
+
+
+class HTTPS_Post(QThread):
+    completeSig = pyqtSignal(object)
+
+    def __init__(self, url, data):
+        super(QThread, self).__init__()
+        self.url = url
+        self.data = data
+
+    def run(self):
+        # post the data as a json
+        response = requests.post(self.url, json=self.data)
+        self.completeSig.emit(response)
 
 
 class MainWindow(QMainWindow):
@@ -143,7 +172,7 @@ class EmbeddingWidget(QWidget):
         self.saveFileName.textChanged.connect(self.buttonCheck)
         layout.addWidget(self.saveFileName, 2, 0)
 
-        self.runBtn = QPushButton("Colllect Text")
+        self.runBtn = QPushButton("Collect Text")
         self.runBtn.clicked.connect(self.run)
         self.runBtn.setEnabled(False)
         layout.addWidget(self.runBtn, 2, 1)
@@ -152,6 +181,11 @@ class EmbeddingWidget(QWidget):
         self.progressBar.setMaximum(BAR_LENGTH)
         self.progressBar.hide()
         layout.addWidget(self.progressBar, 3, 0, 1, 2)
+
+        self.sendBtn = QPushButton("Send Collected Text")
+        self.sendBtn.clicked.connect(self.send)
+        self.sendBtn.setEnabled(False)
+        layout.addWidget(self.sendBtn, 4, 1)
 
         self.setLayout(layout)
 
@@ -178,6 +212,14 @@ class EmbeddingWidget(QWidget):
         self.calcThread.completeSig.connect(self.completeCallback)
         self.calcThread.start()
 
+    def send(self):
+        self.textWindow.setText("Sending to server...")
+        self.sendThread = HTTPS_Post(
+            "http://24.34.20.62:55889/data_upload/", self.scrapedData
+        )
+        self.sendThread.completeSig.connect(self.sendCompleteCallback)
+        self.sendThread.start()
+
     def buttonCheck(self):
         if self.filepathBox.text() != "" and self.saveFileName.text() != "":
             self.runBtn.setEnabled(True)
@@ -189,7 +231,21 @@ class EmbeddingWidget(QWidget):
 
     def completeCallback(self, value):
         self.textWindow.setText("Completed!")
-        print(len(value))
+        self.progressBar.hide()
+        self.sendBtn.setEnabled(True)
+        self.scrapedData = {"data": value}
+
+    def sendCompleteCallback(self, value):
+        # print status code of value which is an http response
+        print(value.status_code)
+        print(value.text)
+        if value.status_code == 200 or value.status_code == 202:
+            data = value.json()
+            print(data)
+            self.textWindow.setText(f'Successfully sent! Batch Id: {data["batch_id"]}')
+        else:
+            self.textWindow.setText("Error sending!")
+        # self.sendBtn.setEnabled(False)
 
 
 class SearchWidget(QWidget):
@@ -230,7 +286,30 @@ class SearchWidget(QWidget):
             self.runBtn.setEnabled(False)
 
     def run(self):
-        self.textWindow.setPlainText(test_text)
+        # Create a thread to get the data from the server
+        self.textWindow.setText("Searching...")
+        self.data = {
+            "batchId": str(self.idField.text()),
+            "query": str(self.searchField.text()),
+        }
+        print(self.data)
+        self.searchThread = HTTPS_Get("http://24.34.20.62:55889/search/", self.data)
+        self.searchThread.completeSig.connect(self.completeCallback)
+        self.searchThread.start()
+
+    def completeCallback(self, value):
+        # print status code of value which is an http response
+        if value.status_code == 200:
+            data = value.json()["data"]
+            # unpack json into human readable text
+            text = ""
+            for i in data:
+                text += f'File: {i["filepath"]} \nScore: {i["similarity"]} \nText: {i["text"]}\n\n'
+            self.textWindow.setText(text)
+        elif value.status_code == 404:
+            self.textWindow.setText("No results found for this BatchId!")
+        else:
+            self.textWindow.setText("Error sending!")
 
 
 def main():

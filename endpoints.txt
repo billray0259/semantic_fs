@@ -13,12 +13,10 @@ POST /data_upload/
     }
 Return value:
     {
-        "status": "ok",
-        "data": [
+        "data":
             {
                 "batchId": "1",
             },
-        ]
     }
 GET /data_upload/{batchId}/
     {
