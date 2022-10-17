@@ -6,7 +6,6 @@ import json
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import QThread, pyqtSignal
-from sklearn.utils import resample
 
 from lib.file_readers import iter_texts, iter_supported_files
 
@@ -116,7 +115,7 @@ class MainWindow(QMainWindow):
         self.title = "Semantic File Search"
         self.left = 10
         self.top = 10
-        self.width = 640
+        self.width = 640 * 2
         self.height = 640
         self.initUI()
 
@@ -158,7 +157,7 @@ class EmbeddingWidget(QWidget):
 
         layout = QGridLayout()
 
-        self.textWindow = QLabel()
+        self.textWindow = QTextBrowser(self, readOnly=True)
         layout.addWidget(self.textWindow, 0, 0, 1, 2)
 
         self.filepathBox = QLineEdit(self, readOnly=True, placeholderText="...")
@@ -221,7 +220,7 @@ class EmbeddingWidget(QWidget):
         self.sendThread.start()
 
     def buttonCheck(self):
-        if self.filepathBox.text() != "" and self.saveFileName.text() != "":
+        if self.filepathBox.text() != "":
             self.runBtn.setEnabled(True)
         else:
             self.runBtn.setEnabled(False)
@@ -230,7 +229,12 @@ class EmbeddingWidget(QWidget):
         self.progressBar.setValue(value)
 
     def completeCallback(self, value):
-        self.textWindow.setText("Completed!")
+        displayStr = "Text Found\n\n"
+        # Loop over value dict and add file name and text to display string
+        for item in value:
+            displayStr += "File: {}\n{} \n \n".format(item["file"], item["text"])
+
+        self.textWindow.setText(displayStr)
         self.progressBar.hide()
         self.sendBtn.setEnabled(True)
         self.scrapedData = {"data": value}
