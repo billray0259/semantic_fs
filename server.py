@@ -17,11 +17,16 @@ from pymilvus import (
 
 app = flask.Flask(__name__)
 
+
+# TODO load only one instance of the the language model
 encoder_pipeline = TextEncoderPipeline()
 query_pipeline = QueryPipeline()
 
+
+# TODO use a config file
 connections.connect(host="localhost", port="19530")
 
+# TODO move database code to a separate file
 
 def batch_id_to_collection_name(batch_id):
     return f"batch_{batch_id}"
@@ -43,6 +48,7 @@ def batch_id_to_collection(batch_id):
 def update_database(data, batch_id):
     collection = batch_id_to_collection(batch_id)
 
+    # TODO use pydantic for type hints 
     entities = {
         "embeddings": [],
         "file": [],
@@ -61,6 +67,8 @@ def update_database(data, batch_id):
             embeddings = file_name_embeddings
         else:
             embeddings = np.concatenate([embeddings, file_name_embeddings], axis=0)
+
+
 
         for chunk, embedding in zip(text_chunks, embeddings):
             # hash the text to make a key
@@ -114,7 +122,7 @@ def search_database(query, batch_id):
         query_embedding.reshape(1, -1),
         "embeddings",
         {"metric_type": "IP"},
-        limit=10,
+        limit=10, # TODO make this configurable
         output_fields=["file", "text"]
     )
 
@@ -147,14 +155,18 @@ POST /data_upload/
         ]
     }
 '''
+
+# TODO fastapi can autogenerate documentation
 @app.route('/data_upload/', methods=['POST', 'GET'])
 def data_upload():
     # if the request is a POST request
     if flask.request.method == 'POST':
-        string = str(flask.request.get_json())
-        print(string[:500], "...", string[-500:])
+        # string = str(flask.request.get_json())
+        # print(string[:500], "...", string[-500:])
         data = flask.request.get_json()["data"]
-        # 4 digit int
+
+        # TODO improve batch ID system - use user specified batch name
+        # batch_id = data["batch_id"]
         batch_id = random.randint(1000, 9999)
 
         # open separate thread to do the heavy lifting
