@@ -1,35 +1,53 @@
-from urllib import response
-import uuid
 import numpy as np
 import flask
-from lib.encoders import TextEncoderPipeline, QueryPipeline, ExtractiveQAPipeline
-from lib.util import ndarray_to_json
-import json
+from lib.encoders import TextEncoderPipeline, QueryPipeline
 import random
-import os
+import pandas as pd
 
 from threading import Thread
 
+from pymilvus import (
+    connections,
+    utility,
+    FieldSchema,
+    CollectionSchema,
+    DataType,
+    Collection,
+)
 
 app = flask.Flask(__name__)
 
 encoder_pipeline = TextEncoderPipeline()
 query_pipeline = QueryPipeline()
-# qa_pipeline = ExtractiveQAPipeline()
+
+connections.connect(host="localhost", port="19530")
 
 
-database_file = "database.json"
+def batch_id_to_collection_name(batch_id):
+    return f"batch_{batch_id}"
 
 
-def update_database(data, batch_id, database_file):
-    if not os.path.exists(database_file):
-        with open(database_file, "w") as f:
-            json.dump({}, f, indent=4)
-    
-    with open(database_file, "r") as f:
-        database = json.load(f)
+def batch_id_to_collection(batch_id):
+    fields = [
+        FieldSchema(name="pk", dtype=DataType.INT64, is_primary=True, auto_id=True),
+        FieldSchema(name="embeddings", dtype=DataType.FLOAT_VECTOR, dim=768),
+        FieldSchema(name="file", dtype=DataType.VARCHAR, max_length=1024),
+        FieldSchema(name="text", dtype=DataType.VARCHAR, max_length=1024)
+    ]
+    schema = CollectionSchema(fields, "a basic schema for a batch of embeddings")
+    batch = Collection(batch_id_to_collection_name(batch_id), schema)
+    return batch
 
-    embeddings_dict = {}
+
+
+def update_database(data, batch_id):
+    collection = batch_id_to_collection(batch_id)
+
+    entities = {
+        "embeddings": [],
+        "file": [],
+        "text": []
+    }
     
     for sample in data:
         file = sample["file"]
@@ -46,23 +64,25 @@ def update_database(data, batch_id, database_file):
 
         for chunk, embedding in zip(text_chunks, embeddings):
             # hash the text to make a key
-            key = str(uuid.uuid3(uuid.NAMESPACE_DNS, chunk))
-            embeddings_dict[key] = {}
-            embeddings_dict[key]["filename"] = file
-            embeddings_dict[key]["text"] = chunk
-            embeddings_dict[key]["embedding"] = ndarray_to_json(embedding)
-        
-    database[batch_id] = embeddings_dict
-
-    with open(database_file, "w") as f:
-        json.dump(database, f, indent=4)
+            # key = str(uuid.uuid3(uuid.NAMESPACE_DNS, chunk))
+            # Currently using Milvus auto_id
+            entities["embeddings"].append(np.array(embedding, dtype=float).reshape(-1))
+            entities["file"].append(str(file))
+            entities["text"].append(str(chunk))
 
 
-def get_batch_status(batch_id, database_file):
-    with open(database_file, "r") as f:
-        database = json.load(f)
 
-    return batch_id in database
+    collection.insert(pd.DataFrame(entities))
+
+    collection.create_index("embeddings", {
+        "index_type": "FLAT",
+        "metric_type": "IP",
+        "params": {}
+    })
+
+
+def get_batch_status(batch_id):
+    return utility.has_collection(batch_id_to_collection_name(batch_id))
 
 '''
 {
@@ -81,19 +101,32 @@ def get_batch_status(batch_id, database_file):
     ]
 }
 '''
-def search_database(query, batch_id, database_file):
-    with open(database_file, "r") as f:
-        database = json.load(f)
+def search_database(query, batch_id):
+    if not get_batch_status(batch_id):
+        return {"message": "Batch not found"}, 404
 
-    results = query_pipeline.query_embeddings_dict(query, database[batch_id])
+    collection = batch_id_to_collection(batch_id)
+    collection.load()
+
+    query_embedding = query_pipeline(query)
+
+    results = collection.search(
+        query_embedding.reshape(1, -1),
+        "embeddings",
+        {"metric_type": "IP"},
+        limit=10,
+        output_fields=["file", "text"]
+    )
+
+    collection.release()
 
     results = [
         {
-            "filepath": result[1],
-            "text": result[2],
-            "similarity": str(result[3]),
+            "filepath": result.entity.get("file"),
+            "text": result.entity.get("text"),
+            "similarity": str(result.distance),
         }
-        for result in results
+        for result in results[0]
     ]
 
     return results
@@ -125,17 +158,18 @@ def data_upload():
         batch_id = random.randint(1000, 9999)
 
         # open separate thread to do the heavy lifting
-        thread = Thread(target=update_database, args=(data, batch_id, database_file))
+        thread = Thread(target=update_database, args=(data, batch_id))
         thread.start()
 
         # return batch id with status 200
         return flask.jsonify({"batch_id": batch_id}), 200
+    
     # if the request is a GET request
     else:
         # get the batch id
         batch_id = flask.request.args.get("batchId")
         # check if the batch id is in the database
-        if get_batch_status(batch_id, database_file):
+        if get_batch_status(batch_id):
             # return with status 200
             return flask.jsonify({"status": "done"}), 200
         else:
@@ -177,11 +211,11 @@ def search():
     query = data["query"]
     filepath = data.get("filepath", None)
 
-    if not get_batch_status(batch_id, database_file):
+    if not get_batch_status(batch_id):
         # return 404
         return flask.jsonify({"status": "error", "message": "batch id not found"}), 404
 
-    results = search_database(query, batch_id, database_file)
+    results = search_database(query, batch_id)
 
     # return results with status 200
     return flask.jsonify({"status": "ok", "data": results}), 200
