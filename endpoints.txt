@@ -1,0 +1,56 @@
+POST /data_upload/
+    {
+        "data": [
+            {
+                "file": "pwd/file1",
+                "text": "some text",
+            },
+            {
+                "file": "pwd/file2",
+                "text": "some text2",
+            },
+        ]
+    }
+Return value:
+    {
+        "data":
+            {
+                "batchId": "1",
+            },
+    }
+GET /data_upload/{batchId}/
+    {
+    }
+Return value:
+    {
+        "status": "ok",
+    }
+Return value:
+    {
+        "status": "Not found",
+    }
+
+GET /search/
+    {
+        "batchId": "1",
+        "query": "some text",
+        OPTIONAL:
+        "filepath": "pwd/",
+    }
+Return value:
+    {
+        "status": "ok",
+        "data": [
+            {
+                "filepath": "pwd/file1",
+                "text": "some text",
+                "similarity": 22.11,
+            },
+            {
+                "filepath": "pwd/file2",
+                "text": "some text2",
+                "similarity": 15.11,
+            },
+        ]
+    }
+
