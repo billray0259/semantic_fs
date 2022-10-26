@@ -9,6 +9,8 @@ from PyQt5.QtCore import QThread, pyqtSignal
 
 from lib.file_readers import iter_texts, iter_supported_files
 
+
+# TODO we can probably remove this text now
 test_text = """
 data_directory2/Lecture_Notes_v1.0_687_F22.pdf - 11.693231582641602
 Answer: rewards
@@ -73,7 +75,8 @@ class CreateEmbeddings(QThread):
         length = len(list(iter_supported_files(self.dir)))
         progressCount = 0
         result = []
-        for value in iter_texts(self.dir):
+        for value in iter_texts(self.dir): # TODO iter_texts should probably take a file iterator as an input so we can avoid calling iter_supported_files twice
+                                           # Better to have separation of concerns anyway.   (I realize I wrote iter_texts lol)
             result.append({"file": value[0], "text": value[1]})
             progressCount += 1
             self.progressSig.emit(int((progressCount / length) * 100))
@@ -113,6 +116,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         self.title = "Semantic File Search"
+        # TODO maybe have this be configurable in a config file... not sure if it really matters though
         self.left = 10
         self.top = 10
         self.width = 640 * 2
@@ -148,6 +152,8 @@ class TabsWindow(QWidget):
         self.setLayout(self.layout)
 
 
+# TODO the Embeddings and Search Widgets are big enough they could probably get their own files
+
 class EmbeddingWidget(QWidget):
     def __init__(self):
         super().__init__()
@@ -158,7 +164,7 @@ class EmbeddingWidget(QWidget):
         layout = QGridLayout()
 
         self.textWindow = QTextBrowser(self, readOnly=True)
-        layout.addWidget(self.textWindow, 0, 0, 1, 2)
+        layout.addWidget(self.textWindow, 0, 0, 1, 2) # TODO It's a bit unclear what these numbers mean, perhaps (I realize he said not to put this in the code review) a comment or making the numbers constants would be helpful.
 
         self.filepathBox = QLineEdit(self, readOnly=True, placeholderText="...")
         layout.addWidget(self.filepathBox, 1, 0)
@@ -190,7 +196,7 @@ class EmbeddingWidget(QWidget):
 
     def folderDialog(self):
         options = QFileDialog.Options()
-        options |= QFileDialog.Option.ShowDirsOnly
+        options |= QFileDialog.Option.ShowDirsOnly # TODO why is there a bit-wise-or-equals here?
         directory = QFileDialog.getExistingDirectory(
             self, "QFileDialog.getExistingDirectory()", "", options=options
         )
@@ -214,7 +220,7 @@ class EmbeddingWidget(QWidget):
     def send(self):
         self.textWindow.setText("Sending to server...")
         self.sendThread = HTTPS_Post(
-            "http://24.34.20.62:55889/data_upload/", self.scrapedData
+            "http://24.34.20.62:55889/data_upload/", self.scrapedData # TODO this could definitely be in a config file
         )
         self.sendThread.completeSig.connect(self.sendCompleteCallback)
         self.sendThread.start()
@@ -297,7 +303,7 @@ class SearchWidget(QWidget):
             "query": str(self.searchField.text()),
         }
         print(self.data)
-        self.searchThread = HTTPS_Get("http://24.34.20.62:55889/search/", self.data)
+        self.searchThread = HTTPS_Get("http://24.34.20.62:55889/search/", self.data) # TODO also could be loaded form a config file
         self.searchThread.completeSig.connect(self.completeCallback)
         self.searchThread.start()
 
@@ -315,7 +321,8 @@ class SearchWidget(QWidget):
         else:
             self.textWindow.setText("Error sending!")
 
-
+# TODO main could be in a separate file and import what it needs
+# TODO main could also be responsible for loading the config file
 def main():
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
