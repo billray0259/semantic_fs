@@ -31,7 +31,10 @@ connections.connect(host="localhost", port="19530")
 def batch_id_to_collection_name(batch_id):
     return f"batch_{batch_id}"
 
-
+#1. The `text` field should probably be stored as a `DataType.TEXT` instead of a `DataType.VARCHAR`. It seems that `TEXT` is for longer strings.
+#2. Consider renaming the cuntion `batch_id_to_collection' to `create_batch_collection`.
+#3. The schema for the collection should be defined outside of the function. We drew this up in Figma, we can make it a system precedent somewhere.
+#4. Small note, but let's consider if we want `auto_id` field set to `False`. Is it okay for Milvus to define our primary keys for us?
 def batch_id_to_collection(batch_id):
     fields = [
         FieldSchema(name="pk", dtype=DataType.INT64, is_primary=True, auto_id=True),
@@ -44,11 +47,16 @@ def batch_id_to_collection(batch_id):
     return batch
 
 
+#1. Use pydantic for type hints
+#2. Use a more specific name than "entities" to describe what this variable is storing
+#3. Consider using a defaultdict here instead of a regular dict
+#4. You don't need to store the text chunks and embeddings separately - you can just store a list of tuples
+#5. You don't need to call str() on the file variable - it's already a string (I assume)
+#6. Instead of using a UUID here, you could just use the text chunk as the key. That way, you don't need to store the text chunk separately. 
 
 def update_database(data, batch_id):
     collection = batch_id_to_collection(batch_id)
 
-    # TODO use pydantic for type hints 
     entities = {
         "embeddings": [],
         "file": [],
@@ -109,6 +117,9 @@ def get_batch_status(batch_id):
     ]
 }
 '''
+
+#1. The `search_database` function should return the results in the same format as the `search` method.
+#2. The entire function should be refactored to use a try/except block to catch potential errors when querying the database
 def search_database(query, batch_id):
     if not get_batch_status(batch_id):
         return {"message": "Batch not found"}, 404
@@ -156,7 +167,18 @@ POST /data_upload/
     }
 '''
 
-# TODO fastapi can autogenerate documentation
+
+
+#1. TODO fastapi can autogenerate documentation
+#2. The function should be more clearly named, e.g. upload_data
+#3. It would be good to add a docstring to the function describing what it does. For all functions up to this point actually.
+#4. It looks like this function is handling both POST and GET requests - it might be better to have two functions for this. This was standard practice in most systems I worked with.
+#5. In the POST request section, it would be good to validate the data that is being passed in before attempting to process it.
+#6. The batch ID system should be improved - right now a random number is being generated, which could lead to collisions [ queue in Andrew McGregor face ]
+#7. It might be helpful to add a try/except block around the database update, in case something goes wrong
+#8. In the GET request section, we should add some logging to track when batch IDs are being checked
+
+
 @app.route('/data_upload/', methods=['POST', 'GET'])
 def data_upload():
     # if the request is a POST request
@@ -216,6 +238,8 @@ Return value:
         ]
     }
 '''
+
+#1. Not a bad idea to check if the query is valid before running it.
 @app.route('/search/', methods=['GET'])
 def search():
     data = flask.request.get_json()
@@ -237,6 +261,7 @@ def search():
 
 
 # index page says "Semantic Search Server is Online"
+# Good to have the health check in place
 @app.route('/')
 def index():
     return "Semantic Search Server is Online"
@@ -244,3 +269,11 @@ def index():
 if __name__ == '__main__':
     # run on 0.0.0.0:8000
     app.run(host='0.0.0.0', port=8000)
+    
+    
+    
+# Additional comments:
+
+# 1. There is no error checking on user input
+# 2. Code is needs to be well organized - related code should be grouped together
+# 3. PEP8 - code should follow PEP8 style guide
