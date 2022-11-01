@@ -44,6 +44,23 @@ services:
       - "etcd"
       - "minio"
 
+  frontend_api:
+    container_name: semantic-fs-server
+    # Here we tell docker compose how to build the container.
+    build:
+      # The "build context" is everything that docker should have access to when building your image. We make it the root directory of our project
+      context: .
+      
+      dockerfile: server.dockerfile
+    tty: true
+    # Here we handle the networking between our host machine and the docker container. This means if you access localhost:8888 in a browser on your computer, you will be directed to port 8888 in your container
+    ports:
+      - "127.0.0.1:8000:8000"
+    # A volume is essentially a mounted drive for a docker container. This tells Docker to map the contents of your fronted_api directory locally with the /app directory in your container.
+    # This is a nice quality of life thing when developing, since Flask has an auto-reload feature. If you edit files locally, they will change in your container too and your server will restart without needing to restart docker
+    volumes:
+      - .:/app
+
 networks:
   default:
     name: milvus
