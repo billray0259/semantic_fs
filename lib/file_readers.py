@@ -3,8 +3,9 @@ from PyPDF2 import PdfReader
 
 
 def read_txt(file_path):
-    with open(file_path, 'r') as f:
+    with open(file_path, "r") as f:
         return f.read()
+
 
 def read_pdf(file_path):
     # read every page and concatenate them
@@ -13,10 +14,7 @@ def read_pdf(file_path):
 
 
 def get_file_readers():
-    return {
-        '.txt': read_txt,
-        '.pdf': read_pdf
-    }
+    return {".txt": read_txt, ".pdf": read_pdf}
 
 
 def iter_supported_files(directory):
@@ -32,5 +30,7 @@ def iter_texts(directory):
     for file in iter_supported_files(directory):
         try:
             yield (file, supported_file_types[os.path.splitext(file)[1]](file))
+        # TODO Is there a better way for us to throw errors?
+        # We should probably have a way to display these to the user
         except Exception as e:
             print(f"Error reading file {file}: {e}")
