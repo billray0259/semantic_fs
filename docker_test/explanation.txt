@@ -1,0 +1,75 @@
+version: "3.9"
+services:
+  program:
+    build: .
+    volumes:
+      - .:/app
+    command: python /app/program.py
+
+# Q. what does a docker-compose.yml file do?
+# A. it tells docker-compose to build an image from the Dockerfile in the current directory
+# Q. what if I want to use more than one Dockerfile such as a Dockerfile for the program and a Dockerfile for the database?
+# A. here's how to do that:
+version: "3.9"
+services:
+  program:
+    build: .
+    volumes:
+      - .:/app
+    command: python /app/program.py
+  database:
+    build: .
+    volumes:
+      - .:/app
+    command: python /app/database.py
+    
+# Q. do the program and the database need to have their own Dockerfiles?
+# A. no, they can share the same Dockerfile
+# Q. what if I want to use different Dockerfiles?
+# A. here's how to do that:
+version: "3.9"
+services:
+  program:
+    build: ./program
+    volumes:
+      - .:/app
+    command: python /app/program.py
+  database:
+    build: ./database
+    volumes:
+      - .:/app
+    command: python /app/database.py
+
+# A. where program and database are directories containing Dockerfiles
+# A. example file strucutre:
+.
+├── database
+│   ├── Dockerfile
+│   └── database.py
+├── program
+│   ├── Dockerfile
+│   └── program.py
+└── docker-compose.yml
+
+# Q. what does services -> program -> build: ./program do?
+# A. it tells docker-compose to build an image from the Dockerfile in the program directory
+
+# Q. how do I see all the images that docker-compose has built?
+# A. run docker compose images
+# Q. This image is 3.3GB, why is it so large?
+# A. because it contains the entire python runtime
+# Q. How do I delete this image?
+# A. run docker compose down
+# Q. will this free up disk space?
+# A. no, it will not free up disk space
+# Q. why not?
+# A. because docker-compose does not delete the images that it builds
+# Q. how do I delete the images that docker-compose builds?
+# A. run docker image prune
+
+# Q. how do I see all the docker images on my system?
+# A. run docker images
+# Q. how do I remove, and free up the space, from a specific docker image on my system?
+# A. run docker rmi <image id>
+# Q. what does rmi mean?
+# A. remove image

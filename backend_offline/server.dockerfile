@@ -10,7 +10,7 @@ RUN apt update
 
 # To get our code into the Docker image, we just need to copy it from our local computer.
 # We start by copying over the requirements.txt file from the local path "./frontend_api/requirements.txt" to the working directory (/app) in the image
-COPY ./requirements.txt ./
+COPY backend/requirements.txt ./
 # Then we pip install all our requirements in the image
 RUN pip install --no-cache-dir -r requirements.txt
 
@@ -19,13 +19,14 @@ RUN pip install torch torchvision torchaudio --extra-index-url https://download.
 
 
 # Finally we copy our server (e.g., your flask or FastAPI app) code over to the image
-COPY ./fastapi_server.py .
-COPY ./lib ./lib
+COPY backend/fastapi_server.py .
+COPY backend/lib ./lib
 
 ENV PYTHONPATH=/app
 
 # The CMD keyword tells the image what command to run when it starts. Here we just call main.py, which starts serves our app.
-CMD [ "python", "-u", "fastapi_server.py" ]
+# CMD [ "python", "-u", "fastapi_server.py" ]
+CMD [ "python3"]
 
 # One small detail to note: when you are normally testing a flask app, you run it on localhost. However, if you did that in a docker container, it would run on the localhost of the VM, and not be accessible from your host machine.
 # So, you want to host your app in your container at 0.0.0.0, which will allow incoming connections
