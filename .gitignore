@@ -2,7 +2,8 @@
 /env
 /toxic_comments/comments/
 /toxic_comments/comments/train_preprocessed.csv
-/lib/__pycache__
+__pycache__/
 milvus/
 database.json
-volumes/
+/database/volumes/
+help.txt

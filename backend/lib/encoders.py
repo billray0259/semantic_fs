@@ -3,7 +3,6 @@ from transformers import pipeline
 import numpy as np
 from .util import ndarray_from_json
 
-
 class TextEncoderPipeline:
     # TODO move model name into config
     def __init__(self, model_name="sentence-transformers/multi-qa-mpnet-base-dot-v1", chunk_size=128):
@@ -55,10 +54,10 @@ class QueryPipeline:
         return sorted(results, key=lambda x: x[3], reverse=True)[:top_k]
 
 
-class ExtractiveQAPipeline:
+# class ExtractiveQAPipeline:
 
-    def __init__(self, model_name="deepset/roberta-base-squad2"):
-        self.pipe = pipeline("question-answering", model=model_name)
+#     def __init__(self, model_name="deepset/roberta-base-squad2"):
+#         self.pipe = pipeline("question-answering", model=model_name)
 
-    def __call__(self, query, text):
-        return self.pipe(question=query, context=text)
+#     def __call__(self, query, text):
+#         return self.pipe(question=query, context=text)
