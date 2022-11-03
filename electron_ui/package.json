@@ -1,0 +1,36 @@
+{
+  "name": "electron_ui",
+  "version": "1.0.0",
+  "description": "Semantic File System Search with Electron UI",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "electron-forge start",
+    "package": "electron-forge package",
+    "make": "electron-forge make"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/billray0259/semantic_fs.git"
+  },
+  "author": "Bill Ray, Kamran Zolfonoon, Veer Singh",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/billray0259/semantic_fs/issues"
+  },
+  "homepage": "https://github.com/billray0259/semantic_fs#readme",
+  "devDependencies": {
+    "@electron-forge/cli": "^6.0.0-beta.75",
+    "@electron-forge/maker-deb": "^6.0.0-beta.75",
+    "@electron-forge/maker-rpm": "^6.0.0-beta.75",
+    "@electron-forge/maker-squirrel": "^6.0.0-beta.75",
+    "@electron-forge/maker-zip": "^6.0.0-beta.75",
+    "electron": "^21.2.1"
+  },
+  "dependencies": {
+    "@popperjs/core": "^2.11.6",
+    "bootstrap": "^5.2.2",
+    "electron-squirrel-startup": "^1.0.0",
+    "jquery": "^3.6.1"
+  }
+}

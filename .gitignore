@@ -7,3 +7,5 @@ milvus/
 database.json
 /database/volumes/
 help.txt
+node_modules/
+/electron_ui/out
