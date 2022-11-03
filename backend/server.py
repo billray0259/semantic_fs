@@ -17,14 +17,12 @@ from pymilvus import (
 
 app = flask.Flask(__name__)
 
-
 # TODO load only one instance of the the language model
 encoder_pipeline = TextEncoderPipeline()
 query_pipeline = QueryPipeline()
 
-
 # TODO use a config file
-connections.connect(host="localhost", port="19530")
+connections.connect(host="192.168.0.128", port="19530") # TODO make this connect to the milvus container instead of this specific IP
 
 # TODO move database code to a separate file
 

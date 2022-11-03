@@ -2,7 +2,12 @@
 /env
 /toxic_comments/comments/
 /toxic_comments/comments/train_preprocessed.csv
-/lib/__pycache__
+__pycache__/
 milvus/
 database.json
+/database/volumes/
+help.txt
+node_modules/
+/electron_ui/out
 volumes/
+.DS_store

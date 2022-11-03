@@ -66,9 +66,10 @@ class QueryPipeline:
         return sorted(results, key=lambda x: x[3], reverse=True)[:top_k]
 
 
-class ExtractiveQAPipeline:
-    def __init__(self, model_name="deepset/roberta-base-squad2"):
-        self.pipe = pipeline("question-answering", model=model_name)
+# class ExtractiveQAPipeline:
 
-    def __call__(self, query, text):
-        return self.pipe(question=query, context=text)
+#     def __init__(self, model_name="deepset/roberta-base-squad2"):
+#         self.pipe = pipeline("question-answering", model=model_name)
+
+#     def __call__(self, query, text):
+#         return self.pipe(question=query, context=text)
