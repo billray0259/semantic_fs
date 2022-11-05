@@ -1,10 +1,14 @@
-window.addEventListener('DOMContentLoaded', () => {
-    const replaceText = (selector, text) => {
-        const element = document.getElementById(selector)
-        if (element) element.innerText = text
-    }
+const { contextBridge, ipcRenderer } = require('electron');
 
-    for (const dependency of ['chrome', 'node', 'electron']) {
-        replaceText(`${dependency}-version`, process.versions[dependency])
+
+contextBridge.exposeInMainWorld("searchBridge", {
+    launchFile: (filePath) => {
+        return ipcRenderer.invoke('launch-file', filePath);
+    },
+    doesFileExist: (filePath) => {
+        return ipcRenderer.invoke('does-file-exist', filePath);
+    },
+    search: (query, batch) => {
+        return ipcRenderer.invoke('search', query, batch);
     }
-})
+});
