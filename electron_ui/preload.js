@@ -1,7 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 
-contextBridge.exposeInMainWorld("searchBridge", {
+contextBridge.exposeInMainWorld("bridge", {
     launchFile: (filePath) => {
         return ipcRenderer.invoke('launch-file', filePath);
     },
@@ -10,5 +10,17 @@ contextBridge.exposeInMainWorld("searchBridge", {
     },
     search: (query, batch) => {
         return ipcRenderer.invoke('search', query, batch);
+    },
+    openFileDialog: () => {
+        return ipcRenderer.invoke('open-file-dialog');
+    },
+    uploadFiles: (filePath, batchName) => {
+        return ipcRenderer.invoke('upload-files', filePath, batchName);
+    },
+    // expose upload file callback that notifies renderer after every file upload
+    fileUploaded: (callback) => {
+        ipcRenderer.on('file-uploaded', (event, arg) => {
+            callback(arg);
+        });
     }
 });
