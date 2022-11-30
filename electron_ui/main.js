@@ -5,6 +5,7 @@ const fs = require('fs');
 
 const { ipcMain } = require('electron');
 
+
 function createWindow () {
     const win = new BrowserWindow({
         width: 1600,
@@ -90,6 +91,35 @@ function createWindow () {
         });
     });
 
+    // ipc list-batches: sends a get request to the endpoint, returns promise with list of batches
+
+    const listBatchesEndpoint = 'http://24.34.20.62:55889/list_batches/';
+    ipcMain.handle('list-batches', (event) => {
+        return new Promise((resolve, reject) => {
+            // resolve with dummy data
+            // resolve(["1088", "batch2", "batch3"]);
+
+            // now lets resolve with real data
+            const request = net.request({
+                method: 'GET',
+                url: listBatchesEndpoint
+            });
+
+            request.on('response', (response) => {
+                let data = '';
+                response.on('data', (chunk) => {
+                    data += chunk;
+                });
+                response.on('end', () => {
+                    resolve(JSON.parse(data));
+                });
+            }
+            );
+
+            request.end();
+        });
+    });
+
     // ipc upload-files: given file path and batch name
     // if file path is a directory, recursively process all files in directory
     // if file path is a file, process the file
@@ -155,7 +185,8 @@ function createWindow () {
                                         file: filePath,
                                         text: data
                                     }
-                                ]
+                                ],
+                                batchId: batchName
                             }));
                             request.end();
                         }

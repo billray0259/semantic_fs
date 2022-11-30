@@ -22,5 +22,8 @@ contextBridge.exposeInMainWorld("bridge", {
         ipcRenderer.on('file-uploaded', (event, arg) => {
             callback(arg);
         });
+    },
+    listBatches: () => {
+        return ipcRenderer.invoke('list-batches');
     }
 });

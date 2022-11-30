@@ -55,6 +55,24 @@ function addFileLinkToResult(resultElement, filePath) {
 // ['batch_4827', 'batch_1561', 'batch_7051', 'batch_2152', 'batch_3471', 'batch_7619', 'batch_1074', 'batch_1088', 'batch_1377', 'batch_5665', 'batch_7541', 'batch_8538', 'batch_4720', 'batch_1886', 'batch_3023', 'batch_4538', 'batch_6217', 'batch_123']
 
 
+// set the options of the id="batch" select element to a list of batches from bridge.listBatches()
+bridge.listBatches().then((batches) => {
+    console.log(batches.data);
+    batches = batches.data;
+    const batchSelect = document.getElementById('batch');
+    batches.forEach((batch) => {
+        const option = document.createElement('option');
+        // every batch name has a batch_ prefix
+        // remove the prefix
+        batch = batch.substring(6);
+        option.value = batch;
+        option.text = batch;
+        batchSelect.add(option);
+    });
+});
+
+
+
 // id=upload-collapse expands when id=upload is clicked
 const uploadButton = document.getElementById('upload');
 const uploadCollapse = document.getElementById('upload-collapse');
@@ -106,7 +124,12 @@ document.getElementById('search').addEventListener('click', () => {
 
             resultClone.querySelector('.card-title').innerText = result.filepath.split('/').pop();
             resultClone.querySelector('.card-subtitle').innerText = result.filepath;
-            resultClone.querySelector('.card-text').innerText = result.text;
+            
+            let text = result.text;
+            // replace newlines with <br>
+            // text = text.replace(/\n/g, '<br>');
+
+            resultClone.querySelector('.card-text').innerText = text;
             resultsDiv.appendChild(resultClone);
 
             // ipcRenderer.send('does-file-exist', result.filepath);
